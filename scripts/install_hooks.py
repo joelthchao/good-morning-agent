@@ -67,6 +67,11 @@ if ! run_check "Type checking (mypy)" "uv run mypy src/" "Fix the type issues ab
     failed=1
 fi
 
+# 5. Security check
+if ! run_check "Security check" "python scripts/security_check.py" "Fix security issues above"; then
+    failed=1
+fi
+
 # 5. Test execution (optional, can be disabled for faster commits)
 # Uncomment the following lines if you want to run tests on every commit
 # if ! run_check "Unit tests" "uv run pytest tests/" "Fix failing tests"; then

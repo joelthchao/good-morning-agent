@@ -25,9 +25,20 @@ MANIFEST
 .venv/
 # uv.lock should be committed for reproducible builds
 
-# 環境變數檔案
+# 環境變數檔案 - 包含敏感信息，绝不提交
 .env
+.env.*
 config/.env
+config/.env.*
+config/.env.test
+config/.env.production
+config/.env.local
+
+# API密钥和凭证
+*.key
+*.pem
+*.p12
+credentials.json
 
 # 資料目錄
 data/emails/*
