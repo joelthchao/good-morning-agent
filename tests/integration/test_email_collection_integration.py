@@ -12,7 +12,7 @@ Requires real email credentials for full integration testing.
 
 import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import patch
 
 import pytest

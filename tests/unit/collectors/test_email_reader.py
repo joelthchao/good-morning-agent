@@ -10,7 +10,7 @@ Tests the email collection functionality including:
 
 import email
 from email.mime.text import MIMEText
-from typing import Any, Dict, List
+from typing import Any
 
 import pytest
 
@@ -198,7 +198,7 @@ def create_mock_email_message(
     return msg
 
 
-def create_mock_imap_response(emails: List[Dict[str, Any]]) -> List[bytes]:
+def create_mock_imap_response(emails: list[dict[str, Any]]) -> list[bytes]:
     """Create mock IMAP response data."""
     response_data = []
     for i, email_data in enumerate(emails, 1):
