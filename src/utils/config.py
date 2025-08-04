@@ -18,12 +18,14 @@ logger = logging.getLogger(__name__)
 
 class ConfigurationError(Exception):
     """Raised when configuration is invalid or missing."""
+
     pass
 
 
 @dataclass
 class EmailConfig:
     """Email configuration settings."""
+
     imap_server: str
     imap_port: int
     smtp_server: str
@@ -38,6 +40,7 @@ class EmailConfig:
 @dataclass
 class OpenAIConfig:
     """OpenAI API configuration."""
+
     api_key: str
     model: str = "gpt-3.5-turbo"
     max_tokens: int = 1000
@@ -46,6 +49,7 @@ class OpenAIConfig:
 @dataclass
 class ProcessingConfig:
     """Newsletter processing configuration."""
+
     max_newsletters_per_run: int = 10
     days_to_look_back: int = 1
     summary_length: int = 200
@@ -56,6 +60,7 @@ class ProcessingConfig:
 @dataclass
 class TestingConfig:
     """Testing and development configuration."""
+
     testing: bool = False
     log_level: str = "INFO"
     run_integration_tests: bool = False
@@ -69,6 +74,7 @@ class TestingConfig:
 @dataclass
 class Config:
     """Main configuration container."""
+
     email: EmailConfig
     openai: OpenAIConfig
     processing: ProcessingConfig
@@ -78,14 +84,14 @@ class Config:
 def load_config(env_file: Optional[str] = None) -> Config:
     """
     Load configuration from environment variables.
-    
+
     Args:
         env_file: Optional path to .env file. If None, will try to load
                   from .env, .env.test, or environment variables.
-    
+
     Returns:
         Configured Config object
-        
+
     Raises:
         ConfigurationError: If required configuration is missing or invalid
     """
@@ -100,11 +106,11 @@ def load_config(env_file: Optional[str] = None) -> Config:
         project_root = Path(__file__).parent.parent.parent
         env_files = [
             project_root / "config" / ".env.test",
-            project_root / "config" / ".env", 
+            project_root / "config" / ".env",
             project_root / ".env.test",
             project_root / ".env",
         ]
-        
+
         for env_path in env_files:
             if env_path.exists():
                 logger.info(f"Loading configuration from {env_path}")
@@ -137,7 +143,7 @@ def load_config(env_file: Optional[str] = None) -> Config:
         # Load processing configuration
         whitelist_str = os.getenv("NEWSLETTER_WHITELIST")
         blacklist_str = os.getenv("NEWSLETTER_BLACKLIST")
-        
+
         processing_config = ProcessingConfig(
             max_newsletters_per_run=int(os.getenv("MAX_NEWSLETTERS_PER_RUN", "10")),
             days_to_look_back=int(os.getenv("DAYS_TO_LOOK_BACK", "1")),
@@ -152,7 +158,9 @@ def load_config(env_file: Optional[str] = None) -> Config:
             log_level=os.getenv("LOG_LEVEL", "INFO"),
             run_integration_tests=_get_bool_env("RUN_INTEGRATION_TESTS", False),
             save_raw_emails=_get_bool_env("SAVE_RAW_EMAILS", False),
-            save_processed_newsletters=_get_bool_env("SAVE_PROCESSED_NEWSLETTERS", False),
+            save_processed_newsletters=_get_bool_env(
+                "SAVE_PROCESSED_NEWSLETTERS", False
+            ),
             enable_debug_logging=_get_bool_env("ENABLE_DEBUG_LOGGING", False),
             raw_email_dir=os.getenv("RAW_EMAIL_DIR", "data/raw_emails"),
             processed_dir=os.getenv("PROCESSED_DIR", "data/processed"),
@@ -172,44 +180,44 @@ def load_config(env_file: Optional[str] = None) -> Config:
 def validate_config(config: Config) -> None:
     """
     Validate configuration for completeness and correctness.
-    
+
     Args:
         config: Configuration to validate
-        
+
     Raises:
         ConfigurationError: If configuration is invalid
     """
     # Validate email configuration
     if not config.email.address:
         raise ConfigurationError("EMAIL_ADDRESS is required")
-    
+
     if not config.email.password:
         raise ConfigurationError("EMAIL_PASSWORD is required")
-    
+
     if "@" not in config.email.address:
         raise ConfigurationError("EMAIL_ADDRESS must be a valid email address")
-    
+
     # Validate OpenAI configuration
     if not config.openai.api_key:
         raise ConfigurationError("OPENAI_API_KEY is required")
-    
+
     if not config.openai.api_key.startswith("sk-"):
         raise ConfigurationError("OPENAI_API_KEY must start with 'sk-'")
-    
+
     # Validate port numbers
     if not (1 <= config.email.imap_port <= 65535):
         raise ConfigurationError("EMAIL_IMAP_PORT must be between 1 and 65535")
-    
+
     if not (1 <= config.email.smtp_port <= 65535):
         raise ConfigurationError("EMAIL_SMTP_PORT must be between 1 and 65535")
-    
+
     # Validate processing limits
     if config.processing.max_newsletters_per_run <= 0:
         raise ConfigurationError("MAX_NEWSLETTERS_PER_RUN must be positive")
-    
+
     if config.processing.days_to_look_back <= 0:
         raise ConfigurationError("DAYS_TO_LOOK_BACK must be positive")
-    
+
     logger.info("Configuration validation passed")
 
 
@@ -235,19 +243,19 @@ def _get_bool_env(key: str, default: bool = False) -> bool:
 def setup_logging(config: Config) -> None:
     """Setup logging based on configuration."""
     level = getattr(logging, config.testing.log_level.upper(), logging.INFO)
-    
+
     # Configure basic logging
     logging.basicConfig(
         level=level,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
-    
+
     # Enable debug logging if requested
     if config.testing.enable_debug_logging:
         logging.getLogger("src").setLevel(logging.DEBUG)
         logging.getLogger("imaplib").setLevel(logging.DEBUG)
-    
+
     logger.info(f"Logging configured at {config.testing.log_level} level")
 
 

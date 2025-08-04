@@ -46,9 +46,13 @@ def run_command(cmd: list[str], description: str) -> bool:
 def check_test_requirements() -> bool:
     """Check if test requirements are installed."""
     try:
-        import pytest
-        import pytest_cov
-        import pytest_mock
+        import importlib.util
+
+        # Check if required packages are available
+        required_packages = ["pytest", "pytest_cov", "pytest_mock"]
+        for package in required_packages:
+            if importlib.util.find_spec(package) is None:
+                raise ImportError(f"Package {package} not found")
 
         return True
     except ImportError as e:
