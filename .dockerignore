@@ -1,0 +1,74 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.mypy_cache/
+
+# Local data (will be mounted as volumes in production)
+data/emails/*
+data/summaries/*
+data/logs/*
+!data/emails/.gitkeep
+!data/summaries/.gitkeep
+!data/logs/.gitkeep
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Development files
+.python-version
+requirements.txt
+Makefile
+
+# Temporary files
+*.tmp
+*.temp
+*.log

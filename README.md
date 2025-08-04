@@ -51,29 +51,45 @@ good-morning-agent/
 
 ### 前置需求
 
-- Python 3.11+
+- Python 3.12+
+- [uv](https://docs.astral.sh/uv/) (Python 套件管理器)
 - Gmail 帳號（用於專用收集信箱）
 - OpenAI API Key（用於 AI 摘要）
 
-### 安裝步驟
+### 快速開始
 
 ```bash
 # 1. 克隆專案
-git clone https://github.com/your-username/good-morning-agent.git
+git clone https://github.com/joelthchao/good-morning-agent.git
 cd good-morning-agent
 
-# 2. 安裝依賴（待實作）
-pip install -r requirements.txt
+# 2. 自動設置開發環境 (推薦)
+make setup
 
-# 3. 設置環境變數（待實作）
+# 或手動設置
+uv python install 3.12
+uv sync
+
+# 3. 設置環境變數
 cp config/.env.example config/.env
 # 編輯 .env 文件，填入你的 API keys
 
-# 4. 執行測試（待實作）
-python src/main.py --test
+# 4. 執行測試
+make test
 
-# 5. 設置定時任務（待實作）
-python scripts/setup_cron.py
+# 5. 運行應用程式
+make run
+```
+
+### 開發命令
+
+```bash
+make help        # 顯示所有可用命令
+make dev         # 開發環境設置
+make test        # 運行測試
+make format      # 代碼格式化
+make check       # 代碼品質檢查
+make docker-build # 構建 Docker 映像
 ```
 
 ## 📊 功能實作狀態

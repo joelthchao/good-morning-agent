@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  good-morning-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: good-morning-agent
+    restart: unless-stopped
+    
+    # Environment configuration
+    env_file:
+      - config/.env
+    
+    # Volume mounts for persistent data
+    volumes:
+      - ./data/emails:/app/data/emails
+      - ./data/summaries:/app/data/summaries
+      - ./data/logs:/app/data/logs
+      # Mount config for easy updates
+      - ./config/.env:/app/config/.env:ro
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.2'
+    
+    # Networks
+    networks:
+      - good-morning-network
+
+  # Optional: Database service for production
+  # postgres:
+  #   image: postgres:15-alpine
+  #   container_name: good-morning-db
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: good_morning
+  #     POSTGRES_USER: good_morning_user
+  #     POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - good-morning-network
+
+networks:
+  good-morning-network:
+    driver: bridge
+
+# volumes:
+#   postgres_data:
