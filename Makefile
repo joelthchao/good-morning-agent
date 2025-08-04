@@ -49,7 +49,10 @@ lint: ## Run linting checks
 type-check: ## Run type checking with mypy
 	uv run mypy src/
 
-check: lint type-check ## Run all code quality checks
+security: ## Run security checks
+	python scripts/security_check.py
+
+check: lint type-check security ## Run all code quality checks
 
 # Development utilities
 clean: ## Clean up cache and temporary files

@@ -4,7 +4,6 @@ Install Git hooks for Good Morning Agent.
 This script installs pre-commit hooks to ensure code quality.
 """
 
-import os
 import shutil
 import stat
 from pathlib import Path
@@ -12,7 +11,7 @@ from pathlib import Path
 
 def install_pre_commit_hook():
     """Install the pre-commit hook."""
-    hook_content = '''#!/bin/sh
+    hook_content = """#!/bin/sh
 # Good Morning Agent pre-commit hook
 # This script runs code quality checks before allowing commits
 
@@ -68,6 +67,11 @@ if ! run_check "Type checking (mypy)" "uv run mypy src/" "Fix the type issues ab
     failed=1
 fi
 
+# 5. Security check
+if ! run_check "Security check" "python scripts/security_check.py" "Fix security issues above"; then
+    failed=1
+fi
+
 # 5. Test execution (optional, can be disabled for faster commits)
 # Uncomment the following lines if you want to run tests on every commit
 # if ! run_check "Unit tests" "uv run pytest tests/" "Fix failing tests"; then
@@ -85,40 +89,40 @@ else
     echo "${GREEN}🎉 All pre-commit checks passed! Commit proceeding...${NC}"
     exit 0
 fi
-'''
-    
+"""
+
     # Check if we're in a git repository
-    git_dir = Path('.git')
+    git_dir = Path(".git")
     if not git_dir.exists():
         print("❌ Not a git repository. Please run this from the project root.")
         return False
-    
+
     # Create hooks directory if it doesn't exist
-    hooks_dir = git_dir / 'hooks'
+    hooks_dir = git_dir / "hooks"
     hooks_dir.mkdir(exist_ok=True)
-    
+
     # Install pre-commit hook
-    pre_commit_hook = hooks_dir / 'pre-commit'
-    
+    pre_commit_hook = hooks_dir / "pre-commit"
+
     # Backup existing hook if it exists
     if pre_commit_hook.exists():
-        backup_file = hooks_dir / 'pre-commit.backup'
+        backup_file = hooks_dir / "pre-commit.backup"
         shutil.copy2(pre_commit_hook, backup_file)
         print(f"📋 Existing pre-commit hook backed up to {backup_file}")
-    
+
     # Write the new hook
     pre_commit_hook.write_text(hook_content)
-    
+
     # Make it executable
     pre_commit_hook.chmod(pre_commit_hook.stat().st_mode | stat.S_IEXEC)
-    
+
     print("✅ Pre-commit hook installed successfully!")
     return True
 
 
 def install_commit_msg_hook():
     """Install the commit-msg hook for commit message formatting."""
-    hook_content = '''#!/bin/sh
+    hook_content = """#!/bin/sh
 # Good Morning Agent commit-msg hook
 # This script ensures commit messages follow conventional commit format
 
@@ -138,24 +142,24 @@ if ! grep -qE "$commit_regex" "$1"; then
     echo "Types: feat, fix, docs, style, refactor, test, chore"
     exit 1
 fi
-'''
-    
-    git_dir = Path('.git')
-    hooks_dir = git_dir / 'hooks'
-    commit_msg_hook = hooks_dir / 'commit-msg'
-    
+"""
+
+    git_dir = Path(".git")
+    hooks_dir = git_dir / "hooks"
+    commit_msg_hook = hooks_dir / "commit-msg"
+
     # Backup existing hook if it exists
     if commit_msg_hook.exists():
-        backup_file = hooks_dir / 'commit-msg.backup'
+        backup_file = hooks_dir / "commit-msg.backup"
         shutil.copy2(commit_msg_hook, backup_file)
         print(f"📋 Existing commit-msg hook backed up to {backup_file}")
-    
+
     # Write the new hook
     commit_msg_hook.write_text(hook_content)
-    
+
     # Make it executable
     commit_msg_hook.chmod(commit_msg_hook.stat().st_mode | stat.S_IEXEC)
-    
+
     print("✅ Commit-msg hook installed successfully!")
     return True
 
@@ -164,17 +168,17 @@ def main():
     """Main function to install all hooks."""
     print("🪝 Installing Git hooks for Good Morning Agent...")
     print("=" * 50)
-    
+
     success = True
-    
+
     # Install pre-commit hook
     if not install_pre_commit_hook():
         success = False
-    
+
     # Install commit-msg hook
     if not install_commit_msg_hook():
         success = False
-    
+
     if success:
         print("")
         print("🎉 All Git hooks installed successfully!")
@@ -192,7 +196,7 @@ def main():
     else:
         print("❌ Failed to install some hooks")
         return 1
-    
+
     return 0
 
 

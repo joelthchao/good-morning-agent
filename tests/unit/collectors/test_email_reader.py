@@ -22,8 +22,18 @@ class TestEmailReaderConnection:
         self, mock_email_credentials, mock_imap_connection
     ):
         """Test successful IMAP connection."""
-        # This test will be implemented when EmailReader class is created
-        pass
+        from src.collectors.email_reader import EmailReader
+
+        reader = EmailReader(
+            imap_server=mock_email_credentials["imap_server"],
+            imap_port=int(mock_email_credentials["imap_port"]),
+            email_address=mock_email_credentials["email"],
+            password=mock_email_credentials["password"],
+        )
+
+        reader.connect()
+        assert reader.connection is not None
+        reader.disconnect()
 
     def test_imap_connection_failure(self, mock_email_credentials):
         """Test IMAP connection failure handling."""
@@ -67,7 +77,28 @@ class TestEmailParsing:
 
     def test_parse_html_newsletter(self, sample_email_data):
         """Test parsing HTML newsletter content."""
-        pass
+        from src.collectors.email_reader import EmailReader
+        import email
+
+        reader = EmailReader("test", 993, "test@test.com", "password")
+
+        # Create mock email message
+        msg = email.message_from_string(
+            f"""Subject: {sample_email_data['subject']}
+From: {sample_email_data['sender']}
+Date: {sample_email_data['date']}
+Content-Type: text/html
+
+{sample_email_data['body']}"""
+        )
+
+        parsed_email = reader._parse_email_message(msg, sample_email_data["uid"])
+
+        assert parsed_email["uid"] == sample_email_data["uid"]
+        assert parsed_email["subject"] == sample_email_data["subject"]
+        assert parsed_email["sender"] == sample_email_data["sender"]
+        assert parsed_email["content_type"] == "text/html"
+        assert "AI Weekly" in parsed_email["text_content"]
 
     def test_parse_plain_text_email(self):
         """Test parsing plain text email content."""
@@ -91,7 +122,25 @@ class TestNewsletterFiltering:
 
     def test_identify_newsletter_by_sender(self):
         """Test identifying newsletters by sender domain/address."""
-        pass
+        from src.collectors.email_reader import EmailReader
+
+        reader = EmailReader("test", 993, "test@test.com", "password")
+
+        # Test newsletter identification
+        newsletter_email = {
+            "sender": "hello@substack.com",
+            "subject": "Regular Update",
+            "text_content": "This is content with unsubscribe link",
+        }
+
+        non_newsletter_email = {
+            "sender": "friend@gmail.com",
+            "subject": "Personal message",
+            "text_content": "Hey, how are you doing?",
+        }
+
+        assert reader._is_newsletter(newsletter_email) is True
+        assert reader._is_newsletter(non_newsletter_email) is False
 
     def test_identify_newsletter_by_subject(self):
         """Test identifying newsletters by subject patterns."""
