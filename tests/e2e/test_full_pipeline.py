@@ -10,7 +10,7 @@ These tests require real external services and should be run less frequently.
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 
@@ -77,7 +77,7 @@ class TestPerformanceE2E:
 
 
 # Utility functions for E2E tests
-def setup_test_environment() -> Dict[str, Any]:
+def setup_test_environment() -> dict[str, Any]:
     """Setup complete test environment for E2E tests."""
     return {
         "email_credentials": {

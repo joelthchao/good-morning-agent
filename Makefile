@@ -38,14 +38,13 @@ test-coverage: ## Run tests with coverage report
 	uv run pytest --cov=src --cov-report=html --cov-report=term
 
 # Code quality
-format: ## Format code with black and isort
+format: ## Format code with black and ruff
 	uv run black src/ tests/
-	uv run isort src/ tests/
+	uv run ruff check --fix src/ tests/
 
 lint: ## Run linting checks
-	uv run flake8 src/ tests/
+	uv run ruff check src/ tests/
 	uv run black --check src/ tests/
-	uv run isort --check-only src/ tests/
 
 type-check: ## Run type checking with mypy
 	uv run mypy src/
