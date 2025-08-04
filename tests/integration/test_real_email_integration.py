@@ -14,13 +14,13 @@ Prerequisites:
 """
 
 import logging
-import pytest
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from src.collectors.email_reader import EmailReader, EmailConnectionError
-from src.utils.config import load_config, validate_config, ConfigurationError
+import pytest
 
+from src.collectors.email_reader import EmailConnectionError, EmailReader
+from src.utils.config import ConfigurationError, load_config, validate_config
 
 logger = logging.getLogger(__name__)
 

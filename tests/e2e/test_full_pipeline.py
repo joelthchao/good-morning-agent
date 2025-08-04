@@ -10,7 +10,7 @@ These tests require real external services and should be run less frequently.
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 

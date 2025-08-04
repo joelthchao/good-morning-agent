@@ -11,13 +11,13 @@ This module handles:
 import email
 import imaplib
 import logging
+import re
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any, Union
 from email.message import EmailMessage, Message
-from bs4 import BeautifulSoup
-import re
+from typing import Any
 
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,7 @@ class EmailReader:
         self.password = password
         self.max_retries = max_retries
         self.retry_delay = retry_delay
-        self.connection: Optional[imaplib.IMAP4_SSL] = None
+        self.connection: imaplib.IMAP4_SSL | None = None
 
         # Newsletter identification patterns
         self.newsletter_patterns = {
@@ -132,7 +132,7 @@ class EmailReader:
                 else:
                     raise EmailConnectionError(
                         f"Failed to connect after {self.max_retries} attempts: {e}"
-                    )
+                    ) from e
 
     def disconnect(self) -> None:
         """Safely disconnect from IMAP server."""
@@ -145,7 +145,7 @@ class EmailReader:
             finally:
                 self.connection = None
 
-    def select_mailbox(self, mailbox: str = "INBOX") -> Tuple[str, int]:
+    def select_mailbox(self, mailbox: str = "INBOX") -> tuple[str, int]:
         """
         Select mailbox and return status and message count.
 
@@ -174,8 +174,8 @@ class EmailReader:
         self,
         criteria: str = "ALL",
         unread_only: bool = False,
-        since_date: Optional[datetime] = None,
-    ) -> List[str]:
+        since_date: datetime | None = None,
+    ) -> list[str]:
         """
         Search for emails matching criteria.
 
@@ -218,7 +218,7 @@ class EmailReader:
 
         return uids
 
-    def fetch_email(self, uid: str) -> Optional[Dict[str, Any]]:
+    def fetch_email(self, uid: str) -> dict[str, Any] | None:
         """
         Fetch and parse a single email by UID.
 
@@ -240,7 +240,7 @@ class EmailReader:
 
             # Parse email message
             raw_data = data[0][1] if isinstance(data[0], tuple) else data[0]
-            if not isinstance(raw_data, (bytes, bytearray)):
+            if not isinstance(raw_data, bytes | bytearray):
                 logger.warning(f"Invalid email data type for UID {uid}")
                 return None
             email_message = email.message_from_bytes(raw_data)
@@ -253,10 +253,10 @@ class EmailReader:
 
     def fetch_emails(
         self,
-        limit: Optional[int] = None,
+        limit: int | None = None,
         unread_only: bool = False,
-        since_date: Optional[datetime] = None,
-    ) -> List[Dict[str, Any]]:
+        since_date: datetime | None = None,
+    ) -> list[dict[str, Any]]:
         """
         Fetch multiple emails with optional filtering.
 
@@ -289,8 +289,8 @@ class EmailReader:
         return emails
 
     def _parse_email_message(
-        self, message: Union[EmailMessage, Message], uid: str
-    ) -> Dict[str, Any]:
+        self, message: EmailMessage | Message, uid: str
+    ) -> dict[str, Any]:
         """
         Parse email message into structured data.
 
@@ -378,9 +378,9 @@ class EmailReader:
             return email_data
 
         except Exception as e:
-            raise EmailParsingError(f"Failed to parse email UID {uid}: {e}")
+            raise EmailParsingError(f"Failed to parse email UID {uid}: {e}") from e
 
-    def _is_newsletter(self, email_data: Dict[str, Any]) -> bool:
+    def _is_newsletter(self, email_data: dict[str, Any]) -> bool:
         """
         Determine if an email is a newsletter.
 
@@ -420,7 +420,7 @@ class EmailReader:
         # If 2 or more indicators present, likely a newsletter
         return indicator_count >= 2
 
-    def _classify_newsletter(self, email_data: Dict[str, Any]) -> str:
+    def _classify_newsletter(self, email_data: dict[str, Any]) -> str:
         """
         Classify newsletter type based on content.
 
@@ -460,7 +460,7 @@ class EmailReader:
 
         return "general"
 
-    def filter_newsletters(self, emails: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def filter_newsletters(self, emails: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Filter emails to return only newsletters, ordered by priority.
 
@@ -497,8 +497,8 @@ class EmailReader:
     def get_recent_newsletters(
         self,
         days: int = 1,
-        limit: Optional[int] = 10,
-    ) -> List[Dict[str, Any]]:
+        limit: int | None = 10,
+    ) -> list[dict[str, Any]]:
         """
         Get recent newsletters from the last N days.
 
