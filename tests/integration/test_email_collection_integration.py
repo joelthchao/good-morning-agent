@@ -17,8 +17,6 @@ from unittest.mock import patch
 
 import pytest
 
-from tests.data.fixtures.sample_newsletters import ALL_SAMPLE_NEWSLETTERS
-
 
 class TestEmailCollectionIntegration:
     """Integration tests for email collection workflow."""

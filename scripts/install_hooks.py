@@ -4,7 +4,6 @@ Install Git hooks for Good Morning Agent.
 This script installs pre-commit hooks to ensure code quality.
 """
 
-import os
 import shutil
 import stat
 from pathlib import Path
