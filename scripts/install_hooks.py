@@ -58,13 +58,8 @@ if ! run_check "Code formatting (Black)" "uv run black --check --diff src/ tests
     failed=1
 fi
 
-# 2. Import sorting check (isort)
-if ! run_check "Import sorting (isort)" "uv run isort --check-only --diff src/ tests/" "make format"; then
-    failed=1
-fi
-
-# 3. Linting check (flake8)
-if ! run_check "Code linting (flake8)" "uv run flake8 src/ tests/" "Fix the linting issues above"; then
+# 2. Linting and import sorting check (ruff)
+if ! run_check "Ruff linting and import sorting" "uv run ruff check src/ tests/" "make format"; then
     failed=1
 fi
 
@@ -187,7 +182,7 @@ def main():
         print("What this means:")
         print("• Every commit will run code quality checks")
         print("• Commit messages must follow conventional format")
-        print("• Code must pass black, isort, flake8, and mypy")
+        print("• Code must pass black, ruff, and mypy")
         print("")
         print("To bypass hooks (not recommended):")
         print("  git commit --no-verify")

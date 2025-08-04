@@ -10,8 +10,9 @@ This file contains:
 
 import os
 import tempfile
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Dict, Generator
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -51,7 +52,7 @@ def test_data_dir() -> Path:
 
 # Email Testing Fixtures
 @pytest.fixture
-def mock_email_credentials() -> Dict[str, str]:
+def mock_email_credentials() -> dict[str, str]:
     """Mock email credentials for testing."""
     return {
         "imap_server": "imap.gmail.com",
@@ -78,7 +79,7 @@ def mock_imap_connection():
 
 
 @pytest.fixture
-def sample_email_data() -> Dict[str, Any]:
+def sample_email_data() -> dict[str, Any]:
     """Sample email data for testing."""
     return {
         "uid": "123",
@@ -106,7 +107,7 @@ def sample_email_data() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def sample_newsletter_emails() -> list[Dict[str, Any]]:
+def sample_newsletter_emails() -> list[dict[str, Any]]:
     """Multiple sample newsletter emails for testing."""
     return [
         {
@@ -156,14 +157,14 @@ def sample_ai_summary() -> str:
     """Sample AI-generated summary for testing."""
     return """
     **AI Weekly #42 Summary**
-    
+
     This week's highlights include:
-    
+
     1. **GPT-4 Improvements**: OpenAI announced enhanced reasoning capabilities for GPT-4
     2. **Research Breakthrough**: Stanford researchers published efficient transformer architectures
-    
+
     Key takeaway: The AI field continues rapid advancement with both commercial and academic progress.
-    
+
     Estimated reading time: 3 minutes
     """
 
@@ -185,7 +186,7 @@ def mock_smtp_connection():
 
 # Configuration Testing Fixtures
 @pytest.fixture
-def test_config() -> Dict[str, Any]:
+def test_config() -> dict[str, Any]:
     """Test configuration dictionary."""
     return {
         "email": {

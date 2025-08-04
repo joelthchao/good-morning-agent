@@ -174,10 +174,9 @@ def run_linting() -> bool:
             "Black formatting check",
         ),
         (
-            ["python", "-m", "isort", "--check-only", "src/", "tests/"],
-            "Import sorting check",
+            ["python", "-m", "ruff", "check", "src/", "tests/"],
+            "Ruff linting and import sorting",
         ),
-        (["python", "-m", "flake8", "src/", "tests/"], "Flake8 linting"),
         (["python", "-m", "mypy", "src/"], "MyPy type checking"),
     ]
 

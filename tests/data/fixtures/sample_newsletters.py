@@ -5,7 +5,7 @@ This module contains realistic newsletter samples for testing the email
 processing pipeline.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 # TLDR Newsletter Sample
 TLDR_NEWSLETTER = {
@@ -21,25 +21,25 @@ TLDR_NEWSLETTER = {
         <h1>TLDR</h1>
         <p>Friday, January 5, 2024</p>
     </div>
-    
+
     <div class="section">
         <h2>🚀 Tech</h2>
         <div class="article">
             <h3>OpenAI launches GPT Store</h3>
-            <p>OpenAI has officially launched the GPT Store, allowing users to 
-            discover and share custom ChatGPT versions. The store features 
-            trending GPTs across categories like productivity, education, and 
+            <p>OpenAI has officially launched the GPT Store, allowing users to
+            discover and share custom ChatGPT versions. The store features
+            trending GPTs across categories like productivity, education, and
             lifestyle.</p>
             <a href="#" class="read-more">Read more</a>
         </div>
-        
+
         <div class="article">
             <h3>Apple Vision Pro launch date confirmed</h3>
             <p>Apple has confirmed that Vision Pro will launch in early February 2024, starting at $3,499. Pre-orders begin January 19th with availability in US Apple Stores.</p>
             <a href="#" class="read-more">Read more</a>
         </div>
     </div>
-    
+
     <div class="section">
         <h2>💰 Startups</h2>
         <div class="article">
@@ -67,10 +67,10 @@ DEEP_LEARNING_WEEKLY = {
         <h1>Deep Learning Weekly</h1>
         <h2>Issue #156 - Transformer Innovations</h2>
     </div>
-    
+
     <div class="research-section">
         <h2>📚 Research Papers</h2>
-        
+
         <div class="paper">
             <h3>Mamba: Linear-Time Sequence Modeling with Selective State Spaces</h3>
             <p><strong>Authors:</strong> Gu, A., & Dao, T.</p>
@@ -83,7 +83,7 @@ DEEP_LEARNING_WEEKLY = {
             </ul>
             <a href="https://arxiv.org/abs/2312.00752" class="paper-link">arXiv:2312.00752</a>
         </div>
-        
+
         <div class="paper">
             <h3>Retrieval-Augmented Generation for Large Language Models: A Survey</h3>
             <p><strong>Authors:</strong> Lewis, P., et al.</p>
@@ -97,7 +97,7 @@ DEEP_LEARNING_WEEKLY = {
             </ul>
         </div>
     </div>
-    
+
     <div class="tools-section">
         <h2>🛠️ Tools & Libraries</h2>
         <div class="tool">
@@ -125,14 +125,14 @@ PRAGMATIC_ENGINEER = {
         <h2>Engineering Leadership in 2024</h2>
         <p>By Gergely Orosz</p>
     </div>
-    
+
     <div class="intro">
         <p>Happy New Year! As we enter 2024, I wanted to share thoughts on the evolving landscape of engineering leadership, especially in the context of AI adoption and remote work.</p>
     </div>
-    
+
     <div class="article-section">
         <h2>🎯 Key Trends for Engineering Leaders</h2>
-        
+
         <div class="trend">
             <h3>1. AI-Assisted Development</h3>
             <p>GitHub Copilot and similar tools are becoming standard. Leaders need to:</p>
@@ -142,7 +142,7 @@ PRAGMATIC_ENGINEER = {
                 <li>Balance productivity gains with code quality</li>
             </ul>
         </div>
-        
+
         <div class="trend">
             <h3>2. Distributed Team Effectiveness</h3>
             <p>Remote work is here to stay. Successful leaders are focusing on:</p>
@@ -152,7 +152,7 @@ PRAGMATIC_ENGINEER = {
                 <li>Deliberate team bonding activities</li>
             </ul>
         </div>
-        
+
         <div class="trend">
             <h3>3. Engineering Productivity Metrics</h3>
             <p>DORA metrics are becoming mainstream, but teams are adding:</p>
@@ -163,7 +163,7 @@ PRAGMATIC_ENGINEER = {
             </ul>
         </div>
     </div>
-    
+
     <div class="case-study">
         <h2>📊 Case Study: Scaling at Stripe</h2>
         <p>How Stripe's engineering org evolved from 50 to 500 engineers:</p>
@@ -179,7 +179,7 @@ PRAGMATIC_ENGINEER = {
 
 
 # Collection of all sample newsletters
-ALL_SAMPLE_NEWSLETTERS: List[Dict[str, Any]] = [
+ALL_SAMPLE_NEWSLETTERS: list[dict[str, Any]] = [
     TLDR_NEWSLETTER,
     DEEP_LEARNING_WEEKLY,
     PRAGMATIC_ENGINEER,
@@ -243,7 +243,7 @@ EXPECTED_SUMMARIES = {
 }
 
 
-def get_sample_newsletter(newsletter_id: str) -> Dict[str, Any]:
+def get_sample_newsletter(newsletter_id: str) -> dict[str, Any]:
     """Get a specific sample newsletter by ID."""
     newsletter_map = {
         "tldr": TLDR_NEWSLETTER,
@@ -253,7 +253,7 @@ def get_sample_newsletter(newsletter_id: str) -> Dict[str, Any]:
     return newsletter_map.get(newsletter_id, TLDR_NEWSLETTER)
 
 
-def get_expected_summary(uid: str) -> Dict[str, str]:
+def get_expected_summary(uid: str) -> dict[str, str]:
     """Get expected AI summary for a newsletter UID."""
     return EXPECTED_SUMMARIES.get(
         uid,
