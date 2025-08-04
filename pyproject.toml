@@ -1,0 +1,197 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[project]
+name = "good-morning-agent"
+version = "0.1.0"
+description = "AI-powered daily newsletter digest generator with privacy-first design"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.12"
+authors = [
+    { name = "Joel", email = "your-email@example.com" }
+]
+keywords = ["newsletter", "ai", "summary", "email", "automation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Communications :: Email",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content :: News/Diary",
+]
+
+# Production dependencies
+dependencies = [
+    # Email processing (use standard library imaplib instead of imaplib3)
+    # "imaplib3>=0.9.3",  # Not available in PyPI, using standard library
+    "beautifulsoup4>=4.12.2",
+    "lxml>=4.9.3",
+    
+    # AI services
+    "openai>=0.28.1",
+    
+    # HTTP requests
+    "requests>=2.31.0",
+    
+    # Task scheduling
+    "schedule>=1.2.0",
+    "python-crontab>=3.0.0",
+    
+    # Email templates
+    "jinja2>=3.1.2",
+    
+    # Configuration management
+    "python-dotenv>=1.0.0",
+    
+    # Date/time processing
+    "python-dateutil>=2.8.2",
+    
+    # Data processing (optional)
+    "pandas>=2.1.1",
+]
+
+# Optional dependencies for different use cases
+[project.optional-dependencies]
+dev = [
+    # Testing
+    "pytest>=7.4.2",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    
+    # Code quality
+    "black>=23.9.1",
+    "flake8>=6.1.0",
+    "mypy>=1.5.1",
+    "isort>=5.12.0",
+    
+    # Type stubs
+    "types-requests>=2.31.0",
+    "types-python-dateutil>=2.8.19",
+]
+
+docker = [
+    # Docker-specific dependencies
+    "gunicorn>=21.2.0",
+]
+
+docs = [
+    # Documentation generation
+    "sphinx>=7.2.6",
+    "sphinx-rtd-theme>=1.3.0",
+]
+
+# Entry points for command-line usage
+[project.scripts]
+good-morning-agent = "src.main:main"
+
+[project.urls]
+Homepage = "https://github.com/joelthchao/good-morning-agent"
+Repository = "https://github.com/joelthchao/good-morning-agent"
+Issues = "https://github.com/joelthchao/good-morning-agent/issues"
+
+# Tool configurations
+[tool.black]
+line-length = 88
+target-version = ['py312']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 88
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = [
+    "imaplib3.*",
+    "schedule.*",
+    "python_crontab.*",
+]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+minversion = "7.4"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/conftest.py",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# UV-specific configuration
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.4.2",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "black>=23.9.1",
+    "flake8>=6.1.0",
+    "mypy>=1.5.1",
+    "isort>=5.12.0",
+    "types-requests>=2.31.0",
+    "types-python-dateutil>=2.8.19",
+]

@@ -21,6 +21,10 @@ wheels/
 *.egg
 MANIFEST
 
+# UV package manager
+.venv/
+# uv.lock should be committed for reproducible builds
+
 # 環境變數檔案
 .env
 config/.env
