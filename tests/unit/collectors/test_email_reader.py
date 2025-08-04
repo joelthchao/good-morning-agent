@@ -77,8 +77,9 @@ class TestEmailParsing:
 
     def test_parse_html_newsletter(self, sample_email_data):
         """Test parsing HTML newsletter content."""
-        from src.collectors.email_reader import EmailReader
         import email
+
+        from src.collectors.email_reader import EmailReader
 
         reader = EmailReader("test", 993, "test@test.com", "password")
 

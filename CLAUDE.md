@@ -1,156 +1,111 @@
-# CLAUDE.md
+**結論**：這份 `CLAUDE.md` 可精簡為 1/3 左右的篇幅，並在專門區塊加入「開發偏好（Developer Preferences）」說明，建議加入於 `## Development Workflow` 前或後。以下是 **精簡版** 並標註「加入開發偏好」位置：
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+---
 
-## Project Overview
+# CLAUDE.md (縮減版)
 
-Good Morning Agent is a privacy-first personal information aggregation tool that generates AI-powered daily summaries from newsletters, weather, and news. The system processes content locally and delivers 10-minute reading digests via email.
+本文件為 Claude Code（claude.ai/code）提供此 repo 的開發指引。
 
-## Core Architecture
+## 🧭 專案簡介
 
-The system is built around 4 key components:
+Good Morning Agent 是隱私優先的 AI 摘要生成工具，從訂閱信、天氣、新聞中萃取每日重點摘要並寄送到指定信箱，處理流程皆於本地完成。
 
-1. **Email Collection** (`src/collectors/`) - IMAP-based newsletter collection from dedicated mailboxes
-2. **Content Processing** (`src/processors/`) - HTML parsing, content extraction, and data cleaning
-3. **AI Summarization** (`src/processors/`) - OpenAI API integration for deep content analysis
-4. **Email Delivery** (`src/senders/`) - SMTP-based HTML email generation and sending
+## 🏗️ 架構概覽
 
-### Data Flow
+主要模組：
+
+1. `src/collectors/`：IMAP 擷取訂閱信
+2. `src/processors/`：HTML 解析與摘要（含 OpenAI API 整合）
+3. `src/senders/`：SMTP 寄送摘要信
+
+資料流程：
+
 ```
-Scheduled Trigger → Newsletter Collection (IMAP) → Content Parsing → AI Summarization → Email Delivery (SMTP)
+定時觸發 → 信件收集 → 內容解析 → AI 摘要 → Email 寄送
 ```
 
-## Privacy-First Design
+## 🔐 隱私設計
 
-**Critical Design Decision**: The system uses dedicated collection mailboxes rather than accessing personal inboxes. Users re-subscribe to newsletters using a dedicated Gmail account (e.g., `good-morning-newsletters@gmail.com`), ensuring complete privacy isolation.
+使用者以新 Gmail 訂閱信件（非個人信箱），確保資料完全隔離與本地處理。
 
-## Development Commands
+---
 
-### Environment Setup with UV
+## ⚙️ 開發與指令
+
+### 📦 環境設置（使用 [uv](https://github.com/astral-sh/uv)）
+
 ```bash
-# Initial setup (installs Python 3.12 and dependencies)
-make setup
-
-# Or manually:
-uv python install 3.12
-uv sync
-
-# Setup environment variables
+make setup        # 初始環境
 cp config/.env.example config/.env
-# Edit .env with actual API keys and credentials
+uv sync           # 安裝依賴
 ```
 
-### Development Workflow
+### ▶️ 常用指令
+
 ```bash
-# All-in-one development setup
-make dev
-
-# Code formatting
-make format
-# or: uv run black src/ tests/ && uv run isort src/ tests/
-
-# Code quality checks
-make check
-# or: uv run flake8 src/ tests/ && uv run mypy src/
-
-# Run tests
-make test
-# or: uv run pytest
-
-# Run specific test types
-make test-unit          # Unit tests only
-make test-integration   # Integration tests only
-make test-coverage      # With coverage report
-
-# Run application
-make run
-# or: uv run python -m src.main
+make dev          # 開發環境啟動
+make run          # 執行應用
+make format       # 格式化（black, isort）
+make check        # 檢查（flake8, mypy）
+make test         # 測試（含 unit, integration, coverage）
 ```
 
-### Database Operations
+### 🧪 資料庫與 Docker
+
 ```bash
-# Initialize local database
-make db-init
-
-# Local SQLite database is created automatically at data/good_morning.db
-# No manual setup required for MVP
+make db-init      # 初始化 SQLite
+make docker-dev   # Docker 內開發
 ```
 
-### Docker Operations
-```bash
-# Build Docker image
-make docker-build
+---
 
-# Run in Docker
-make docker-run
+## 📁 環境變數（.env）
 
-# Development with Docker
-make docker-dev
+* `NEWSLETTER_EMAIL` / `APP_PASSWORD`
+* `SENDER_EMAIL` / `APP_PASSWORD`
+* `RECIPIENT_EMAIL`
+* `OPENAI_API_KEY`, `WEATHER_API_KEY`
+* `DAILY_RUN_TIME` 預設 07:00
+* `OPENAI_MODEL`, `DAILY_TOKEN_LIMIT`, `SUMMARY_MAX_LENGTH`
+
+---
+
+```md
+## 🧑‍💻 Claude 開發偏好
+
+- 先做好設計請開發者 Review 再開始實作。
+- 力求精簡，先寫必要的測試不做過多開發，確保測試過之後才開始開發。
+- 禁止跳過 black、ruff、mypy，若無法通過請開發者做判斷是否跳過。
+- 使用 Python 3.12，搭配 uv 做依賴管理與執行。
+- 優先使用 `make` 指令進行常規開發流程（如 `make dev`, `make test`）。
+- 所有 AI 摘要相關處理集中於 `src/processors/`。
+- 若需修改摘要邏輯，請使用 `test-integration` 測試驗證。
+- 請避免將第三方 API 金鑰硬編碼，統一使用 `.env`。
 ```
 
-## Key Configuration
+---
 
-### Required Environment Variables (.env)
-- `NEWSLETTER_EMAIL` - Dedicated collection mailbox
-- `NEWSLETTER_APP_PASSWORD` - Gmail app-specific password
-- `SENDER_EMAIL` - Email address for sending summaries
-- `SENDER_APP_PASSWORD` - Gmail app password for sender
-- `RECIPIENT_EMAIL` - Target email for daily summaries
-- `OPENAI_API_KEY` - OpenAI API key for summarization
-- `WEATHER_API_KEY` - Weather service API key
-- `DAILY_RUN_TIME` - Execution time (default: 07:00)
+## ✅ 測試策略
 
-### Newsletter Sources (Initial Support)
-- **tl;dr** (`newsletter@tldr.tech`) - Tech news summaries
-- **Deep Learning Weekly** (`noreply@deeplearningweekly.com`) - AI/ML content
-- **Pragmatic Engineer** (`newsletter@pragmatic-engineer.com`) - Software engineering
+* 使用 mock 測試 IMAP、OpenAI、SMTP 流程
+* 驗證 Email 渲染、環境變數與錯誤處理
 
-## Implementation Priority
+---
 
-Based on technical implementation guide, development should follow this sequence:
-1. IMAP email collection module (foundation)
-2. AI summarization with OpenAI integration
-3. SMTP email delivery system
-4. Scheduling and error handling
+## 📦 套件與版本管理（UV）
 
-## Cost Management
+* 鎖定 Python 3.12（`.python-version`）
+* `pyproject.toml` 管理依賴，使用 `uv.lock` 鎖定版本
+* 可用 `make requirements` 產出 `requirements.txt` 做相容性備份
 
-The system includes built-in cost controls:
-- `DAILY_TOKEN_LIMIT` - OpenAI API usage limits
-- `SUMMARY_MAX_LENGTH` - Content length restrictions
-- Model selection via `OPENAI_MODEL` (gpt-3.5-turbo vs gpt-4)
+---
 
-## Architecture Decisions
+## 🧷 安全考量
 
-**MVP Strategy**: Local Python script deployment before cloud migration
-**Database**: SQLite for local development, PostgreSQL for production
-**Scheduling**: Cron jobs for local, Cloud Scheduler for GCP deployment
-**Error Handling**: Exponential backoff for IMAP/SMTP operations, fallback summaries for AI failures
+* 所有憑證以環境變數儲存
+* 使用 Gmail App 密碼，無存取個人信箱
+* 所有處理皆於本地執行，不上傳第三方
 
-## Testing Strategy
+---
 
-Focus on integration testing for email operations and API interactions:
-- Mock IMAP servers for newsletter collection tests
-- Mock OpenAI API responses for summarization tests
-- Test email template rendering and SMTP delivery
-- Environment variable validation and error handling
-
-## Package Management with UV
-
-This project uses **uv** as the primary Python package manager and version manager:
-
-- **Python Version**: Locked to 3.12 (see `.python-version`)
-- **Dependencies**: Managed via `pyproject.toml` (modern Python standard)
-- **Virtual Environment**: Automatically managed by uv
-- **Lock File**: `uv.lock` ensures reproducible builds
-
-### Legacy Compatibility
-- `requirements.txt` can be generated via `make requirements` for compatibility
-- Original `requirements.txt` is deprecated in favor of `pyproject.toml`
-
-## Security Considerations
-
-- All API keys stored in environment variables
-- Gmail app passwords (not primary account passwords)
-- No personal email access - dedicated collection accounts only
-- Local data processing (no third-party data uploads)
+如果你希望我幫你直接產出這份精簡後的 `CLAUDE.md` 檔案或加入特定的開發偏好，請告訴我具體內容或偏好項目。

@@ -5,11 +5,10 @@ This module handles loading and validating environment configuration
 with proper security practices for sensitive data.
 """
 
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
-import logging
 
 from dotenv import load_dotenv
 
@@ -32,9 +31,9 @@ class EmailConfig:
     smtp_port: int
     address: str
     password: str
-    sender_email: Optional[str] = None
-    sender_password: Optional[str] = None
-    recipient_email: Optional[str] = None
+    sender_email: str | None = None
+    sender_password: str | None = None
+    recipient_email: str | None = None
 
 
 @dataclass
@@ -53,8 +52,8 @@ class ProcessingConfig:
     max_newsletters_per_run: int = 10
     days_to_look_back: int = 1
     summary_length: int = 200
-    newsletter_whitelist: Optional[list[str]] = None
-    newsletter_blacklist: Optional[list[str]] = None
+    newsletter_whitelist: list[str] | None = None
+    newsletter_blacklist: list[str] | None = None
 
 
 @dataclass
@@ -81,7 +80,7 @@ class Config:
     testing: TestingConfig
 
 
-def load_config(env_file: Optional[str] = None) -> Config:
+def load_config(env_file: str | None = None) -> Config:
     """
     Load configuration from environment variables.
 
@@ -221,7 +220,7 @@ def validate_config(config: Config) -> None:
     logger.info("Configuration validation passed")
 
 
-def _get_required_env(key: str, default: Optional[str] = None) -> str:
+def _get_required_env(key: str, default: str | None = None) -> str:
     """Get required environment variable with optional default."""
     value = os.getenv(key, default)
     if not value:
