@@ -231,7 +231,7 @@ def skip_integration():
 @pytest.fixture
 def require_api_keys():
     """Fixture that requires real API keys for testing."""
-    required_keys = ["OPENAI_API_KEY", "EMAIL_PASSWORD"]
+    required_keys = ["OPENAI_API_KEY", "NEWSLETTER_APP_PASSWORD"]
     missing_keys = [key for key in required_keys if not os.getenv(key)]
 
     if missing_keys:

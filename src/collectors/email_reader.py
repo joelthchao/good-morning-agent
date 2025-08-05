@@ -14,12 +14,90 @@ import logging
 import re
 import time
 from datetime import datetime, timedelta
+from email.header import decode_header
 from email.message import EmailMessage, Message
 from typing import Any
 
 from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
+
+
+def decode_mime_header(header_value: str) -> str:
+    """
+    Decode MIME encoded header value.
+
+    Args:
+        header_value: Raw header value that may contain MIME encoding
+
+    Returns:
+        Decoded header value as string
+    """
+    if not header_value:
+        return ""
+
+    try:
+        decoded_parts = decode_header(header_value)
+        decoded_string = ""
+
+        for part, encoding in decoded_parts:
+            if isinstance(part, bytes):
+                if encoding:
+                    decoded_string += part.decode(encoding, errors="ignore")
+                else:
+                    decoded_string += part.decode("utf-8", errors="ignore")
+            else:
+                decoded_string += str(part)
+
+        return decoded_string.strip()
+    except Exception as e:
+        logger.warning(f"Failed to decode header '{header_value}': {e}")
+        return header_value
+
+
+def clean_content(content: str) -> str:
+    """
+    Clean email content by removing unwanted characters and formatting.
+
+    Args:
+        content: Raw email content
+
+    Returns:
+        Cleaned content
+    """
+    if not content:
+        return ""
+
+    # Remove invisible characters and control characters
+
+    # Remove various invisible and control characters
+    content = re.sub(
+        r"[\u00AD\u200B\u200C\u200D\uFEFF]", "", content
+    )  # Soft hyphen, zero-width chars
+    content = re.sub(
+        r"[\u180E\u2000-\u200F\u2028-\u202F\u205F-\u206F]", " ", content
+    )  # Various spaces
+
+    # Remove specific problematic characters found in emails
+    content = re.sub(
+        r"[\u00A0\u202F\u2060\u034F]", " ", content
+    )  # Non-breaking spaces and invisible chars
+    content = re.sub(
+        r"[\u200E\u200F\u202A-\u202E]", "", content
+    )  # Text direction marks
+    content = re.sub(r"[\u206A-\u206F]", "", content)  # Deprecated format characters
+
+    # Remove multiple consecutive spaces and clean whitespace
+    content = re.sub(r"\s+", " ", content)
+    content = content.strip()
+
+    # Remove specific email artifacts
+    content = re.sub(r"­͏+", "", content)  # Remove specific problematic sequence
+    content = re.sub(
+        r"^\s*[|\[\]\(\)]+\s*", "", content
+    )  # Remove leading brackets/pipes
+
+    return content
 
 
 class EmailConnectionError(Exception):
@@ -305,11 +383,11 @@ class EmailReader:
             EmailParsingError: If parsing fails
         """
         try:
-            # Extract basic metadata
+            # Extract basic metadata with proper decoding
             email_data = {
                 "uid": uid,
-                "subject": message.get("Subject", ""),
-                "sender": message.get("From", ""),
+                "subject": decode_mime_header(message.get("Subject", "")),
+                "sender": decode_mime_header(message.get("From", "")),
                 "date": message.get("Date", ""),
                 "content_type": "",
                 "body": "",
@@ -317,6 +395,7 @@ class EmailReader:
                 "html_content": "",
                 "is_newsletter": False,
                 "newsletter_type": "",
+                "message_id": message.get("Message-ID", ""),
             }
 
             # Extract body content
@@ -331,18 +410,20 @@ class EmailReader:
 
                     if content_type == "text/plain":
                         payload = part.get_payload(decode=True)
-                        email_data["text_content"] = (
+                        raw_content = (
                             payload.decode("utf-8", errors="ignore")
                             if isinstance(payload, bytes)
                             else str(payload)
                         )
+                        email_data["text_content"] = clean_content(raw_content)
                     elif content_type == "text/html":
                         payload = part.get_payload(decode=True)
-                        email_data["html_content"] = (
+                        raw_content = (
                             payload.decode("utf-8", errors="ignore")
                             if isinstance(payload, bytes)
                             else str(payload)
                         )
+                        email_data["html_content"] = clean_content(raw_content)
             else:
                 content_type = message.get_content_type()
                 email_data["content_type"] = content_type

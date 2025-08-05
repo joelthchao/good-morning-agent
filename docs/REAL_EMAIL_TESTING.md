@@ -68,8 +68,8 @@ Edit `config/.env.test` with your real test values:
 
 ```bash
 # Essential settings for testing
-EMAIL_ADDRESS=your-test-account@gmail.com
-EMAIL_PASSWORD=your-16-character-app-password
+NEWSLETTER_EMAIL=your-test-account@gmail.com
+NEWSLETTER_APP_PASSWORD=your-16-character-app-password
 OPENAI_API_KEY=sk-your-openai-key-here  # Optional
 
 # Enable integration tests
@@ -228,7 +228,7 @@ The integration tests cover:
 
 #### 4. Configuration Errors
 ```
-❌ Configuration error: EMAIL_ADDRESS is required
+❌ Configuration error: NEWSLETTER_EMAIL is required
 ```
 **Solutions:**
 - Ensure `config/.env.test` exists and is properly formatted

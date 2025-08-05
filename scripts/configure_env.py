@@ -67,9 +67,9 @@ def configure_environment():
     content = env_file.read_text()
 
     # Update configuration
-    content = re.sub(r"EMAIL_ADDRESS=.*", f"EMAIL_ADDRESS={email}", content)
+    content = re.sub(r"NEWSLETTER_EMAIL=.*", f"NEWSLETTER_EMAIL={email}", content)
 
-    content = re.sub(r"EMAIL_PASSWORD=.*", f"EMAIL_PASSWORD={clean_password}", content)
+    content = re.sub(r"NEWSLETTER_APP_PASSWORD=.*", f"NEWSLETTER_APP_PASSWORD={clean_password}", content)
 
     if openai_key and openai_key.startswith("sk-"):
         content = re.sub(r"OPENAI_API_KEY=.*", f"OPENAI_API_KEY={openai_key}", content)

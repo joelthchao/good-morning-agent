@@ -125,10 +125,10 @@ def load_config(env_file: str | None = None) -> Config:
             imap_port=int(_get_required_env("EMAIL_IMAP_PORT", "993")),
             smtp_server=_get_required_env("EMAIL_SMTP_SERVER", "smtp.gmail.com"),
             smtp_port=int(_get_required_env("EMAIL_SMTP_PORT", "587")),
-            address=_get_required_env("EMAIL_ADDRESS"),
-            password=_get_required_env("EMAIL_PASSWORD"),
+            address=_get_required_env("NEWSLETTER_EMAIL"),
+            password=_get_required_env("NEWSLETTER_APP_PASSWORD"),
             sender_email=os.getenv("SENDER_EMAIL"),
-            sender_password=os.getenv("SENDER_PASSWORD"),
+            sender_password=os.getenv("SENDER_APP_PASSWORD"),
             recipient_email=os.getenv("RECIPIENT_EMAIL"),
         )
 
@@ -188,13 +188,13 @@ def validate_config(config: Config) -> None:
     """
     # Validate email configuration
     if not config.email.address:
-        raise ConfigurationError("EMAIL_ADDRESS is required")
+        raise ConfigurationError("NEWSLETTER_EMAIL is required")
 
     if not config.email.password:
-        raise ConfigurationError("EMAIL_PASSWORD is required")
+        raise ConfigurationError("NEWSLETTER_APP_PASSWORD is required")
 
     if "@" not in config.email.address:
-        raise ConfigurationError("EMAIL_ADDRESS must be a valid email address")
+        raise ConfigurationError("Email address must be valid")
 
     # Validate OpenAI configuration
     if not config.openai.api_key:
