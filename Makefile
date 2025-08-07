@@ -21,9 +21,25 @@ install: ## Install production dependencies
 dev: ## Install development dependencies
 	uv sync
 
-# Development commands
-run: ## Run the application
-	uv run python -m src.main
+# Development commands  
+run: ## Run the application in development mode
+	uv run python -m src.main --env dev
+
+run-prod: ## Run the application in production mode
+	uv run python -m src.main --env production
+
+run-test: ## Run the application in test mode (no send, save to file)
+	uv run python -m src.main --env test --no-send --verbose
+
+# Pipeline control commands
+collect: ## Collect emails only (dev environment)
+	uv run python -m src.main --env dev --steps collect --verbose
+
+process: ## Process collected emails only (dev environment)
+	uv run python -m src.main --env dev --steps collect,process --no-send --verbose
+
+dry-run: ## Simulate pipeline execution without making changes
+	uv run python -m src.main --env dev --dry-run --verbose
 
 test: ## Run tests
 	uv run pytest
