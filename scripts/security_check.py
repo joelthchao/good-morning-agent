@@ -44,6 +44,10 @@ def check_sensitive_files():
         if not file:
             continue
 
+        # Skip example/template files
+        if any(keyword in file.lower() for keyword in [".example", "example", "template"]):
+            continue
+
         for pattern in sensitive_patterns:
             if re.search(pattern, file, re.IGNORECASE):
                 issues.append(f"Staged file might be sensitive: {file}")

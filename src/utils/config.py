@@ -41,8 +41,10 @@ class OpenAIConfig:
     """OpenAI API configuration."""
 
     api_key: str
-    model: str = "gpt-3.5-turbo"
-    max_tokens: int = 1000
+    model: str = "o4-mini"  # 預設使用 o4-mini 模型
+    max_tokens: int = 4000  # 提高 token 限制以支援更多內容
+    temperature: float = 0.3  # 控制生成隨機性
+    enable_structured_summary: bool = True  # 啟用結構化摘要
 
 
 @dataclass
@@ -54,6 +56,10 @@ class ProcessingConfig:
     summary_length: int = 200
     newsletter_whitelist: list[str] | None = None
     newsletter_blacklist: list[str] | None = None
+    # AI 相關設定
+    use_ai_summarization: bool = True  # 是否使用 AI 摘要
+    batch_processing: bool = True  # 是否使用批量處理
+    fallback_on_ai_failure: bool = True  # AI 失敗時是否回退到簡單摘要
 
 
 @dataclass
@@ -135,8 +141,10 @@ def load_config(env_file: str | None = None) -> Config:
         # Load OpenAI configuration
         openai_config = OpenAIConfig(
             api_key=_get_required_env("OPENAI_API_KEY"),
-            model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
-            max_tokens=int(os.getenv("OPENAI_MAX_TOKENS", "1000")),
+            model=os.getenv("OPENAI_MODEL", "o4-mini"),
+            max_tokens=int(os.getenv("OPENAI_MAX_TOKENS", "4000")),
+            temperature=float(os.getenv("OPENAI_TEMPERATURE", "0.3")),
+            enable_structured_summary=_get_bool_env("ENABLE_STRUCTURED_SUMMARY", True),
         )
 
         # Load processing configuration
@@ -149,6 +157,9 @@ def load_config(env_file: str | None = None) -> Config:
             summary_length=int(os.getenv("SUMMARY_LENGTH", "200")),
             newsletter_whitelist=whitelist_str.split(",") if whitelist_str else None,
             newsletter_blacklist=blacklist_str.split(",") if blacklist_str else None,
+            use_ai_summarization=_get_bool_env("USE_AI_SUMMARIZATION", True),
+            batch_processing=_get_bool_env("BATCH_PROCESSING", True),
+            fallback_on_ai_failure=_get_bool_env("FALLBACK_ON_AI_FAILURE", True),
         )
 
         # Load testing configuration
