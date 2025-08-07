@@ -131,83 +131,118 @@ class Summarizer:
             return self._create_fallback_summary(newsletters)
 
     def _get_system_prompt(self) -> str:
-        """Get the system prompt for AI summarization."""
-        return """你是專業的資訊分析師，專門將多份電子報整合成高效的每日摘要。你的目標是幫助忙碌的用戶在 10 分鐘內獲得 80% 最重要的資訊。
+        """Get the structured system prompt for English newsletter summarization."""
+        # Role and Objective
+        role_definition = (
+            "You are a professional information analyst specializing in consolidating "
+            "multiple newsletters into efficient daily summaries. Your goal is to help "
+            "busy professionals get 80% of the most important information in 10 minutes."
+        )
 
-請分析提供的電子報內容，並按以下 JSON 格式輸出：
-{
+        # JSON Output Format
+        json_format = """{
   "daily_highlights": [
-    "今日最重要的 3-5 個關鍵要點，每個要點 1-2 句話"
+    "3-5 most important key points of the day, each 1-2 sentences with links when available"
   ],
   "categories": {
-    "tech_innovation": {
-      "summary": "科技創新類別的整體摘要",
+    "technology": {
+      "summary": "Overall summary of technology category developments",
       "priority": "high|medium|low",
-      "items": ["具體項目列表"]
+      "items": ["Specific items with format: Title ([link](url)) - brief description"]
     },
-    "business_finance": {
-      "summary": "商業金融類別的整體摘要",
+    "business": {
+      "summary": "Overall summary of business and finance developments",
       "priority": "high|medium|low",
-      "items": ["具體項目列表"]
+      "items": ["Specific items with format: Title ([link](url)) - brief description"]
     },
     "industry_trends": {
-      "summary": "產業趨勢類別的整體摘要",
+      "summary": "Overall summary of industry trends and market insights",
       "priority": "high|medium|low",
-      "items": ["具體項目列表"]
+      "items": ["Specific items with format: Title ([link](url)) - brief description"]
     },
     "tools_resources": {
-      "summary": "工具資源類別的整體摘要",
+      "summary": "Overview of useful tools, resources, and actionable content",
       "priority": "high|medium|low",
-      "items": ["具體項目列表"]
+      "items": ["Specific items with format: Title ([link](url)) - brief description"]
     }
   },
-  "reading_time": "預估閱讀時間",
+  "reading_time": "Estimated reading time",
   "meta": {
-    "total_sources": "處理的電子報數量",
-    "processing_date": "處理日期"
+    "total_sources": "Number of newsletters processed",
+    "processing_date": "Processing date"
   }
-}
+}"""
 
-處理原則：
-1. 重要性評估：關注影響範圍大、時效性強的資訊
-2. 去重整合：相同主題的內容要合併，避免重複
-3. 資訊密度：每個類別摘要控制在 100-150 字
-4. 可操作性：優先提及實用工具、資源連結
-5. 繁體中文輸出，專業但易讀的語調"""
+        # Processing Principles
+        processing_principles = """
+Processing Guidelines:
+1. Impact Assessment: Focus on high-impact, time-sensitive information
+2. Deduplication: Merge similar topics to avoid redundancy
+3. Information Density: Keep category summaries to 100-150 words each
+4. Actionability: Prioritize practical tools, resources, and links
+5. Link Integration: Include original links in format: Title ([link](url))
+6. Professional Tone: Clear, concise, business-focused English"""
+
+        return f"{role_definition}\n\nAnalyze the provided newsletter content and output in this JSON format:\n{json_format}\n{processing_principles}"
 
     def _create_user_prompt(
         self, newsletters: list[NewsletterContent], combined_content: str
     ) -> str:
-        """Create user prompt for AI processing."""
-        return f"""請分析以下 {len(newsletters)} 份電子報內容，生成今日摘要：
+        """Create structured user prompt for newsletter analysis."""
+        # Task Description
+        task_description = f"Analyze the following {len(newsletters)} newsletter contents and generate today's summary:"
 
-{combined_content}
+        # Content Section
+        content_section = f"\n{combined_content}\n"
 
-請嚴格按照 JSON 格式輸出，確保所有字段都包含有意義的內容。重點關注：
-- 今日最重要的趨勢和新聞
-- 實用的工具和資源
-- 影響較大的商業動態
-- 值得關注的技術突破
+        # Specific Focus Areas
+        focus_areas = """
+Priority Focus Areas:
+- Breaking trends and significant news developments
+- Practical tools, resources, and actionable insights
+- Major business developments and market movements
+- Notable technology breakthroughs and innovations
+- Include original article links where available
 
-目標讀者：關注科技和商業趨勢的專業人士，希望快速掌握重點資訊。"""
+Target Audience: Technology and business professionals seeking efficient information consumption.
+"""
+
+        # Output Requirements
+        output_requirements = """
+Output Requirements:
+- Strict JSON format adherence - ensure all fields contain meaningful content
+- Include links in items using format: Title ([link](url)) - description
+- Prioritize high-impact, actionable information
+- Maintain professional, concise tone"""
+
+        return f"{task_description}{content_section}{focus_areas}{output_requirements}"
 
     def _create_combined_content(self, newsletters: list[NewsletterContent]) -> str:
-        """Combine all newsletter contents for AI processing."""
+        """Combine all newsletter contents with links for AI processing."""
         newsletter_sections = []
 
         for i, newsletter in enumerate(newsletters, 1):
-            # 限制每個電子報的內容長度避免超出 token 限制
+            # Limit content length to avoid token limits
             content_preview = (
                 newsletter.content[:2000]
                 if len(newsletter.content) > 2000
                 else newsletter.content
             )
 
-            section = f"""=== 電子報 {i}: {newsletter.title} ===
-來源: {newsletter.source}
-日期: {newsletter.date}
-內容:
-{content_preview}
+            # Include links if available
+            links_section = ""
+            if newsletter.links:
+                links_section = "\nAvailable Links:\n"
+                for link in newsletter.links[
+                    :10
+                ]:  # Limit to 10 links to avoid token overflow
+                    links_section += f"- {link}\n"
+
+            section = f"""=== Newsletter {i}: {newsletter.title} ===
+Source: {newsletter.source}
+Date: {newsletter.date}
+Content:
+{content_preview}{links_section}
 """
             newsletter_sections.append(section)
 
@@ -223,7 +258,7 @@ class Summarizer:
         highlights = []
         items = []
 
-        for newsletter in newsletters[:5]:  # 限制數量
+        for newsletter in newsletters[:5]:  # Limit quantity for performance
             summary = self._fallback_summarize(newsletter.content)
             highlights.append(f"{newsletter.title}: {summary[:100]}...")
             items.append(
@@ -238,12 +273,12 @@ class Summarizer:
             "daily_highlights": highlights,
             "categories": {
                 "general": {
-                    "summary": f"今日收集了 {len(newsletters)} 份電子報，涵蓋科技、商業等多個領域的重要資訊。",
+                    "summary": f"Today's digest includes {len(newsletters)} newsletters covering technology, business, and other key domains.",
                     "priority": "high",
                     "items": [item["title"] for item in items],
                 }
             },
-            "reading_time": "預估 8-12 分鐘",
+            "reading_time": "Estimated 8-12 minutes",
             "meta": {
                 "total_sources": len(newsletters),
                 "processing_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

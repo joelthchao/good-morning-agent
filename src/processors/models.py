@@ -20,6 +20,7 @@ class NewsletterContent:
     source: str
     date: str
     metadata: dict[str, Any]
+    links: list[str] | None = None  # URLs extracted from newsletter content
 
     def __post_init__(self) -> None:
         """Validate newsletter content after initialization."""

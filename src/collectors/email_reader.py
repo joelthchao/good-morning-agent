@@ -20,6 +20,8 @@ from typing import Any
 
 from bs4 import BeautifulSoup
 
+from src.processors.models import NewsletterContent
+
 logger = logging.getLogger(__name__)
 
 
@@ -608,4 +610,129 @@ class EmailReader:
         if limit:
             newsletters = newsletters[:limit]
 
+        return newsletters
+
+    def _extract_links_from_content(
+        self, html_content: str, text_content: str
+    ) -> list[str]:
+        """
+        Extract links from email content.
+
+        Args:
+            html_content: HTML content of the email
+            text_content: Plain text content of the email
+
+        Returns:
+            List of extracted URLs
+        """
+        links = []
+
+        if html_content:
+            soup = BeautifulSoup(html_content, "html.parser")
+            for link in soup.find_all("a", href=True):
+                if hasattr(link, 'get'):
+                    url = link.get("href", "")
+                    if isinstance(url, str) and url.startswith(("http://", "https://")):
+                        links.append(url)
+
+        return list(set(links))  # Remove duplicates
+
+    def _clean_sender_email(self, sender: str) -> str:
+        """
+        Clean and extract email address from sender field.
+
+        Args:
+            sender: Raw sender field (e.g., "Newsletter <newsletter@example.com>")
+
+        Returns:
+            Clean email address or sender name
+        """
+        if not sender:
+            return "unknown@unknown.com"
+
+        # Extract email address from "Name <email@domain.com>" format
+        import re
+
+        email_match = re.search(r"<([^>]+)>", sender)
+        if email_match:
+            return email_match.group(1).strip()
+
+        # If no angle brackets, check if it's already just an email
+        if "@" in sender:
+            return sender.strip()
+
+        # Fallback: return the sender as-is but clean it
+        return sender.strip() or "unknown@unknown.com"
+
+    def convert_to_newsletter_content(
+        self, email_data: dict[str, Any]
+    ) -> NewsletterContent:
+        """
+        Convert email data to NewsletterContent object.
+
+        Args:
+            email_data: Email data dictionary from EmailReader
+
+        Returns:
+            NewsletterContent object
+        """
+        # Extract and clean sender
+        clean_source = self._clean_sender_email(email_data.get("sender", ""))
+
+        # Extract links from content
+        links = self._extract_links_from_content(
+            email_data.get("html_content", ""), email_data.get("text_content", "")
+        )
+
+        # Use the best available content
+        content = (
+            email_data.get("text_content", "")
+            or email_data.get("body", "")
+            or "No content available"
+        )
+
+        return NewsletterContent(
+            title=email_data.get("subject", "No Subject"),
+            content=content.strip(),
+            source=clean_source,
+            date=email_data.get("date", ""),
+            metadata={
+                "uid": email_data.get("uid", ""),
+                "message_id": email_data.get("message_id", ""),
+                "is_newsletter": email_data.get("is_newsletter", False),
+                "newsletter_type": email_data.get("newsletter_type", "general"),
+                "content_type": email_data.get("content_type", "text/plain"),
+            },
+            links=links if links else None,
+        )
+
+    def get_recent_newsletters_as_content(
+        self,
+        days: int = 7,  # Default to 7 days for development
+        limit: int | None = 10,
+    ) -> list[NewsletterContent]:
+        """
+        Get recent newsletters as NewsletterContent objects with 7-day filtering.
+
+        Args:
+            days: Number of days to look back (default 7 for development)
+            limit: Maximum number of newsletters to return
+
+        Returns:
+            List of NewsletterContent objects
+        """
+        # Get recent newsletter email data
+        newsletter_emails = self.get_recent_newsletters(days=days, limit=limit)
+
+        # Convert to NewsletterContent objects
+        newsletters = []
+        for email_data in newsletter_emails:
+            try:
+                newsletter = self.convert_to_newsletter_content(email_data)
+                newsletters.append(newsletter)
+            except Exception as e:
+                logger.error(f"Failed to convert email to newsletter content: {e}")
+                continue
+
+        logger.info(f"Converted {len(newsletters)} emails to NewsletterContent objects")
         return newsletters
