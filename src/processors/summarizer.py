@@ -13,7 +13,7 @@ from typing import Any
 from openai import OpenAI
 
 from src.processors.models import NewsletterContent
-from src.utils.config import get_config
+from src.utils.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -21,9 +21,8 @@ logger = logging.getLogger(__name__)
 class Summarizer:
     """AI-powered content summarizer using OpenAI API."""
 
-    def __init__(self) -> None:
+    def __init__(self, config: Config) -> None:
         """Initialize the summarizer with OpenAI client."""
-        config = get_config()
         self.client = OpenAI(api_key=config.openai.api_key)
         self.model = config.openai.model
         self.max_tokens = config.openai.max_tokens

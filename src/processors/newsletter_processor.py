@@ -14,7 +14,7 @@ from src.processors.models import NewsletterContent, ProcessingResult
 from src.processors.summarizer import Summarizer
 from src.senders.html_formatter import HTMLFormatter
 from src.senders.models import EmailData
-from src.utils.config import get_config
+from src.utils.config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -22,9 +22,10 @@ logger = logging.getLogger(__name__)
 class NewsletterProcessor:
     """Main processor for converting newsletters to email format."""
 
-    def __init__(self) -> None:
+    def __init__(self, config: Config) -> None:
         """Initialize processor with dependencies."""
-        self.summarizer = Summarizer()
+        self.config = config
+        self.summarizer = Summarizer(config)
         self.error_tracker = ErrorTracker()
         self.html_formatter = HTMLFormatter()
         logger.debug("NewsletterProcessor initialized with HTML support")
@@ -141,13 +142,8 @@ class NewsletterProcessor:
             }
             html_content = self.html_formatter.format_html(fallback_summary_data)
 
-        # Get configuration for recipient
-        try:
-            config = get_config()
-            recipient = config.email.recipient_email or "default@example.com"
-        except Exception as e:
-            logger.error(f"Failed to get recipient config: {e}")
-            recipient = "default@example.com"  # Fallback
+        # Get recipient from config
+        recipient = self.config.email.recipient_email or "default@example.com"
 
         # Create a friendly date for subject
         try:
