@@ -12,6 +12,7 @@ from typing import Any
 from src.processors.error_tracker import ErrorTracker
 from src.processors.models import NewsletterContent, ProcessingResult
 from src.processors.summarizer import Summarizer
+from src.senders.html_formatter import HTMLFormatter
 from src.senders.models import EmailData
 from src.utils.config import get_config
 
@@ -25,7 +26,8 @@ class NewsletterProcessor:
         """Initialize processor with dependencies."""
         self.summarizer = Summarizer()
         self.error_tracker = ErrorTracker()
-        logger.debug("NewsletterProcessor initialized")
+        self.html_formatter = HTMLFormatter()
+        logger.debug("NewsletterProcessor initialized with HTML support")
 
     def process_newsletters(
         self, newsletters: list[NewsletterContent]
@@ -56,8 +58,9 @@ class NewsletterProcessor:
             # Use AI to summarize all newsletters at once
             summary_data = self.summarizer.summarize_newsletters(newsletters)
 
-            # Create final email content from structured summary
+            # Create final email content from structured summary (both text and HTML)
             final_content = self._create_structured_content(summary_data)
+            html_content = self.html_formatter.format_html(summary_data)
 
             # Get processed sources
             processed_sources = [newsletter.source for newsletter in newsletters]
@@ -119,6 +122,24 @@ class NewsletterProcessor:
 
             # Create final email content from individual summaries
             final_content = self._combine_content(processed_content)
+            # Create basic HTML for fallback mode
+            fallback_summary_data = {
+                "daily_highlights": [f"Processed {processed_count} newsletters today"],
+                "categories": {
+                    "general": {
+                        "summary": f"Today's digest includes {processed_count} newsletters with individual summaries.",
+                        "priority": "medium",
+                        "items": [],
+                    }
+                },
+                "reading_time": "Estimated 10-15 minutes",
+                "meta": {
+                    "total_sources": processed_count,
+                    "processing_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "fallback_mode": True,
+                },
+            }
+            html_content = self.html_formatter.format_html(fallback_summary_data)
 
         # Get configuration for recipient
         try:
@@ -130,7 +151,6 @@ class NewsletterProcessor:
 
         # Create a friendly date for subject
         try:
-            from datetime import datetime
 
             # Try to parse the date and format it nicely
             date_str = newsletters[0].date
@@ -148,14 +168,15 @@ class NewsletterProcessor:
         except Exception:
             friendly_date = datetime.now().strftime("%Y-%m-%d")
 
-        # Create EmailData
+        # Create EmailData with HTML support
         email_data = EmailData(
             recipient=recipient,
-            subject=f"📧 每日電子報摘要 - {friendly_date}",
+            subject=f"📧 Daily Newsletter Summary - {friendly_date}",
             content=final_content,
             metadata=self._create_metadata(
                 newsletters[0].date, processed_sources, processed_count, failed_count
             ),
+            html_content=html_content if "html_content" in locals() else None,
         )
 
         logger.info(
@@ -186,45 +207,47 @@ class NewsletterProcessor:
         # Header
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         header = f"""
-🌅 每日智能摘要 - {datetime.now().strftime("%Y-%m-%d")}
+🌅 Daily Newsletter Summary - {datetime.now().strftime("%Y-%m-%d")}
 
-📖 {summary_data.get('reading_time', '預估 8-12 分鐘')} | 🗂️ {summary_data.get('meta', {}).get('total_sources', 'N/A')} 份電子報
+📖 {summary_data.get('reading_time', 'Estimated 8-12 minutes')} | 🗂️ {summary_data.get('meta', {}).get('total_sources', 'N/A')} newsletters
 
 {'=' * 60}
 """
 
         # Daily highlights section
-        highlights_content = "\n🎯 今日重點\n\n"
+        highlights_content = "\n🎯 Today's Highlights\n\n"
         for i, highlight in enumerate(summary_data.get("daily_highlights", []), 1):
             highlights_content += f"{i}. {highlight}\n"
         highlights_content += f"\n{'=' * 60}\n"
 
         # Categories section
-        categories_content = "\n📂 分類摘要\n\n"
+        categories_content = "\n📂 Category Breakdown\n\n"
         categories = summary_data.get("categories", {})
 
-        # Define category emojis and Chinese names
+        # Define category emojis and English names
         category_info = {
-            "tech_innovation": ("🚀", "科技創新"),
-            "business_finance": ("💰", "商業金融"),
-            "industry_trends": ("📈", "產業趨勢"),
-            "tools_resources": ("🔧", "工具資源"),
-            "general": ("📰", "綜合資訊"),  # fallback category
+            "technology": ("🚀", "Technology"),
+            "tech_innovation": ("🚀", "Technology"),  # backward compatibility
+            "business": ("💰", "Business"),
+            "business_finance": ("💰", "Business"),  # backward compatibility
+            "industry_trends": ("📈", "Industry Trends"),
+            "tools_resources": ("🔧", "Tools & Resources"),
+            "general": ("📰", "General"),  # fallback category
         }
 
         for category_key, category_data in categories.items():
-            emoji, chinese_name = category_info.get(category_key, ("📰", category_key))
+            emoji, english_name = category_info.get(category_key, ("📰", category_key))
             priority_emoji = {"high": "🔴", "medium": "🟡", "low": "🟢"}.get(
                 category_data.get("priority", "medium"), "🟡"
             )
 
-            categories_content += f"{emoji} {chinese_name} {priority_emoji}\n"
+            categories_content += f"{emoji} {english_name} {priority_emoji}\n"
             categories_content += f"{category_data.get('summary', '')}\n\n"
 
             # Add items if available
             if category_data.get("items"):
-                categories_content += "重點項目：\n"
-                for item in category_data["items"][:5]:  # 限制顯示數量
+                categories_content += "Key Items:\n"
+                for item in category_data["items"][:5]:  # Limit display quantity
                     categories_content += f"• {item}\n"
                 categories_content += "\n"
 
@@ -232,12 +255,12 @@ class NewsletterProcessor:
 
         # Footer
         footer = f"""
-📊 處理統計
-• 來源數量：{summary_data.get('meta', {}).get('total_sources', 'N/A')} 份電子報
-• 處理時間：{current_time}
-• AI 模式：{'正常' if not summary_data.get('meta', {}).get('fallback_mode') else '備用模式'}
+📊 Processing Summary
+• Sources: {summary_data.get('meta', {}).get('total_sources', 'N/A')} newsletters
+• Processing Time: {current_time}
+• AI Mode: {'Normal' if not summary_data.get('meta', {}).get('fallback_mode') else 'Fallback'}
 
-🤖 此摘要由 Good Morning Agent 使用 AI 技術自動生成
+🤖 This summary was automatically generated by Good Morning Agent using AI technology
 """
 
         return header + highlights_content + categories_content + footer
@@ -245,20 +268,20 @@ class NewsletterProcessor:
     def _combine_content(self, sections: list[str]) -> str:
         """Combine multiple newsletter sections into final content (fallback method)."""
         header = f"""
-📧 每日電子報摘要
+📧 Daily Newsletter Summary
 
-本日共收集 {len(sections)} 份電子報，以下是摘要內容：
+Today's digest includes {len(sections)} newsletters with the following summaries:
 
 {'=' * 50}
 """
 
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         footer = f"""
-📊 摘要統計
-• 處理電子報數量：{len(sections)}
-• 生成時間：{current_time}
+📊 Summary Statistics
+• Processed newsletters: {len(sections)}
+• Generated at: {current_time}
 
-此摘要由 Good Morning Agent 自動生成。
+This summary was automatically generated by Good Morning Agent.
 """
 
         return header + "\n".join(sections) + footer
