@@ -630,7 +630,7 @@ class EmailReader:
         if html_content:
             soup = BeautifulSoup(html_content, "html.parser")
             for link in soup.find_all("a", href=True):
-                if hasattr(link, 'get'):
+                if hasattr(link, "get"):
                     url = link.get("href", "")
                     if isinstance(url, str) and url.startswith(("http://", "https://")):
                         links.append(url)
