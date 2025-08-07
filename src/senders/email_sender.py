@@ -197,6 +197,11 @@ class EmailSender:
             text_part = MIMEText(formatted_content, "plain", "utf-8")
             msg.attach(text_part)
 
+            # Attach HTML content if available
+            if email_data.html_content:
+                html_part = MIMEText(email_data.html_content, "html", "utf-8")
+                msg.attach(html_part)
+
             # Send the email
             with smtplib.SMTP(self.config.smtp_server, self.config.smtp_port) as server:
                 server.starttls()

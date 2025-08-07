@@ -14,6 +14,7 @@ class EmailData:
     subject: str
     content: str
     metadata: dict[str, Any]
+    html_content: str | None = None  # Optional HTML version of content
 
     def __post_init__(self) -> None:
         """Validate email data after initialization."""
