@@ -65,7 +65,6 @@ docs/
 
 # Development files
 .python-version
-requirements.txt
 Makefile
 
 # Temporary files
