@@ -78,6 +78,7 @@ class Summarizer:
     ) -> dict[str, Any]:
         """
         Summarize multiple newsletters using AI with structured output.
+        Automatically handles batch processing if content exceeds token limits.
 
         Args:
             newsletters: List of newsletter content to process
@@ -93,6 +94,23 @@ class Summarizer:
 
         logger.info(f"Starting AI summarization for {len(newsletters)} newsletters")
 
+        # Check if we need batch processing
+        estimated_tokens = self._estimate_batch_tokens(newsletters)
+        logger.info(f"Estimated tokens: {estimated_tokens}")
+
+        # If tokens are within limit, process normally
+        if estimated_tokens <= 12000:
+            logger.info("Processing all newsletters in single batch")
+            return self._process_single_batch(newsletters)
+
+        # Otherwise, use batch processing
+        logger.info("Content exceeds token limit, using batch processing")
+        return self._process_in_batches(newsletters)
+
+    def _process_single_batch(
+        self, newsletters: list[NewsletterContent]
+    ) -> dict[str, Any]:
+        """Process newsletters in a single API call."""
         # Create combined content for AI processing
         combined_content = self._create_combined_content(newsletters)
 
@@ -128,6 +146,110 @@ class Summarizer:
         except Exception as e:
             logger.error(f"AI API call failed: {e}")
             return self._create_fallback_summary(newsletters)
+
+    def _process_in_batches(
+        self, newsletters: list[NewsletterContent]
+    ) -> dict[str, Any]:
+        """Process newsletters in multiple batches and combine results."""
+        try:
+            # Split into smaller batches (3-4 newsletters per batch)
+            batch_size = 3
+            batches = [
+                newsletters[i : i + batch_size]
+                for i in range(0, len(newsletters), batch_size)
+            ]
+
+            logger.info(
+                f"Processing {len(newsletters)} newsletters in {len(batches)} batches"
+            )
+
+            batch_summaries = []
+
+            # Process each batch
+            for i, batch in enumerate(batches, 1):
+                logger.info(
+                    f"Processing batch {i}/{len(batches)} with {len(batch)} newsletters"
+                )
+
+                try:
+                    batch_summary = self._process_single_batch(batch)
+                    batch_summaries.append(batch_summary)
+                except Exception as e:
+                    logger.warning(
+                        f"Batch {i} failed: {e}, continuing with remaining batches"
+                    )
+                    continue
+
+            if not batch_summaries:
+                logger.error("All batches failed, using fallback")
+                return self._create_fallback_summary(newsletters)
+
+            # Combine batch summaries into final result
+            return self._combine_batch_summaries(batch_summaries, len(newsletters))
+
+        except Exception as e:
+            logger.error(f"Batch processing failed: {e}")
+            return self._create_fallback_summary(newsletters)
+
+    def _combine_batch_summaries(
+        self, batch_summaries: list[dict[str, Any]], total_newsletters: int
+    ) -> dict[str, Any]:
+        """Combine multiple batch summaries into a single comprehensive summary."""
+        # Collect all highlights
+        all_highlights = []
+        for batch in batch_summaries:
+            highlights = batch.get("daily_highlights", [])
+            all_highlights.extend(highlights)
+
+        # Combine categories
+        combined_categories = {}
+        category_types = [
+            "technology",
+            "business",
+            "industry_trends",
+            "tools_resources",
+        ]
+
+        for category in category_types:
+            items = []
+            summaries = []
+            highest_priority = "low"
+
+            for batch in batch_summaries:
+                batch_category = batch.get("categories", {}).get(category, {})
+                if batch_category:
+                    items.extend(batch_category.get("items", []))
+                    if batch_category.get("summary"):
+                        summaries.append(batch_category["summary"])
+
+                    # Get highest priority
+                    priority = batch_category.get("priority", "low")
+                    if priority == "high" or highest_priority == "low":
+                        highest_priority = priority
+
+            if items or summaries:
+                combined_categories[category] = {
+                    "summary": (
+                        " ".join(summaries[:2])
+                        if summaries
+                        else f"Combined insights from multiple newsletters in {category}"
+                    ),
+                    "priority": highest_priority,
+                    "items": items[:8],  # Limit to prevent overflow
+                }
+
+        # Create final summary
+        return {
+            "daily_highlights": all_highlights[:5],  # Top 5 highlights
+            "categories": combined_categories,
+            "reading_time": f"Estimated {8 + len(batch_summaries) * 2}-{12 + len(batch_summaries) * 3} minutes",
+            "meta": {
+                "total_sources": total_newsletters,
+                "processing_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "batch_processed": True,
+                "batch_count": len(batch_summaries),
+            },
+        }
 
     def _get_system_prompt(self) -> str:
         """Get the structured system prompt for English newsletter summarization."""
@@ -216,32 +338,96 @@ Output Requirements:
 
         return f"{task_description}{content_section}{focus_areas}{output_requirements}"
 
+    def _clean_newsletter_content(self, content: str) -> str:
+        """Clean newsletter content to reduce token usage."""
+        if not content:
+            return ""
+
+        import re
+
+        # Remove HTML tags but keep text content
+        content = re.sub(r"<[^>]+>", " ", content)
+
+        # Remove email headers (lines starting with common email prefixes)
+        lines = content.split("\n")
+        cleaned_lines = []
+
+        for line in lines:
+            line = line.strip()
+            # Skip email headers and metadata lines
+            if (
+                line.startswith(">")
+                or line.startswith("From:")
+                or line.startswith("To:")
+                or line.startswith("Subject:")
+                or line.startswith("Date:")
+                or line.startswith("Reply-To:")
+                or line.startswith("Unsubscribe")
+                or "unsubscribe" in line.lower()
+                and len(line) < 100
+            ):
+                continue
+
+            # Skip empty lines and very short lines
+            if len(line) > 10:
+                cleaned_lines.append(line)
+
+        # Join lines and remove multiple spaces
+        cleaned_content = " ".join(cleaned_lines)
+        cleaned_content = re.sub(r"\s+", " ", cleaned_content)
+
+        # Limit to 1500 characters to reduce token usage
+        if len(cleaned_content) > 1500:
+            cleaned_content = cleaned_content[:1500]
+
+        return cleaned_content.strip()
+
+    def _estimate_batch_tokens(self, newsletters: list[NewsletterContent]) -> int:
+        """Estimate total tokens for a batch of newsletters."""
+        total_chars = 0
+
+        # Estimate system prompt tokens (~1000)
+        base_tokens = 1000
+
+        for newsletter in newsletters:
+            # Clean content and estimate
+            cleaned_content = self._clean_newsletter_content(newsletter.content)
+
+            # Add title, source, and content character counts
+            total_chars += (
+                len(newsletter.title) + len(newsletter.source) + len(cleaned_content)
+            )
+
+            # Add links if available (limited estimation)
+            if newsletter.links:
+                links_chars = sum(
+                    len(link) for link in newsletter.links[:5]
+                )  # Limit to 5 links
+                total_chars += links_chars
+
+        # Convert characters to tokens (rough estimation: 4 chars = 1 token)
+        estimated_tokens = base_tokens + (total_chars // 4)
+
+        return estimated_tokens
+
     def _create_combined_content(self, newsletters: list[NewsletterContent]) -> str:
-        """Combine all newsletter contents with links for AI processing."""
+        """Combine newsletter contents with cleaning for AI processing."""
         newsletter_sections = []
 
         for i, newsletter in enumerate(newsletters, 1):
-            # Limit content length to avoid token limits
-            content_preview = (
-                newsletter.content[:2000]
-                if len(newsletter.content) > 2000
-                else newsletter.content
-            )
+            # Use cleaned content
+            cleaned_content = self._clean_newsletter_content(newsletter.content)
 
-            # Include links if available
+            # Include limited links if available
             links_section = ""
             if newsletter.links:
-                links_section = "\nAvailable Links:\n"
-                for link in newsletter.links[
-                    :10
-                ]:  # Limit to 10 links to avoid token overflow
+                links_section = "\nKey Links:\n"
+                for link in newsletter.links[:5]:  # Reduced to 5 links
                     links_section += f"- {link}\n"
 
             section = f"""=== Newsletter {i}: {newsletter.title} ===
 Source: {newsletter.source}
-Date: {newsletter.date}
-Content:
-{content_preview}{links_section}
+Content: {cleaned_content}{links_section}
 """
             newsletter_sections.append(section)
 
