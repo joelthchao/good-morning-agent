@@ -1,18 +1,17 @@
 """
-Email sender implementation with retry mechanism and security measures.
+Email sender implementation with retry mechanism for HTML emails.
 """
 
 import logging
 import os
 import smtplib
+import ssl
 import time
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+from email.message import EmailMessage
 from typing import TYPE_CHECKING
 
 from .message_formatter import MessageFormatter
 from .models import EmailData, SendResult
-from .security_manager import SecurityManager
 
 if TYPE_CHECKING:
     from src.utils.config import EmailConfig
@@ -27,7 +26,7 @@ class EmailSenderError(Exception):
 
 
 class EmailSender:
-    """Handles email sending with retry mechanism and security measures."""
+    """Handles email sending with retry mechanism for HTML emails."""
 
     def __init__(self, email_config: "EmailConfig"):
         """
@@ -38,9 +37,10 @@ class EmailSender:
         """
         self.config = email_config
         self.formatter = MessageFormatter()
-        self.security_manager = SecurityManager(
-            send_interval=int(os.getenv("EMAIL_SEND_INTERVAL", "2"))
-        )
+
+        # Rate limiting to avoid spam detection
+        self.send_interval = int(os.getenv("EMAIL_SEND_INTERVAL", "2"))
+        self.last_send_time: float | None = None
 
         # Validate configuration
         self._validate_config()
@@ -68,11 +68,8 @@ class EmailSender:
                     retry_count=0,
                 )
 
-            # Apply security measures
-            secured_data = self.security_manager.apply_anti_spam_measures(email_data)
-
-            # Attempt to send with retries
-            return self._retry_send(secured_data, max_retries=3)
+            # Send with retries (no security measures needed for HTML emails)
+            return self._retry_send(email_data, max_retries=3)
 
         except Exception as e:
             logger.error(f"Unexpected error in send_email: {e}")
@@ -128,14 +125,19 @@ class EmailSender:
                     )
                     time.sleep(wait_time)
 
-                # Check rate limits
-                self.security_manager.wait_if_needed()
+                # Apply rate limiting to avoid spam detection
+                if self.last_send_time and self.send_interval > 0:
+                    elapsed = time.time() - self.last_send_time
+                    if elapsed < self.send_interval:
+                        sleep_time = self.send_interval - elapsed
+                        logger.info(f"Rate limiting: waiting {sleep_time:.1f}s")
+                        time.sleep(sleep_time)
 
                 # Attempt to send
                 message_id = self._send_single_email(email_data)
 
-                # Record successful send
-                self.security_manager.record_send()
+                # Record send time
+                self.last_send_time = time.time()
 
                 logger.info(
                     f"Email sent successfully to {email_data.recipient} (attempt {attempt + 1})"
@@ -177,49 +179,54 @@ class EmailSender:
             EmailSenderError: If sending fails
         """
         try:
-            # Format the message content
-            formatted_content = self.formatter.format_plain_text(
-                email_data.content, email_data.metadata
-            )
+            # Create multipart email with HTML and plain text alternatives
+            msg = EmailMessage()
 
-            # Create email message
-            msg = MIMEMultipart()
+            # Set basic headers
             msg["Subject"] = email_data.subject
-            msg["To"] = email_data.recipient
             msg["From"] = self.config.sender_email or self.config.address
+            msg["To"] = email_data.recipient
 
-            # Add security headers
-            security_headers = self.security_manager.add_authentication_headers()
-            for header, value in security_headers.items():
-                msg[header] = value
+            # Set plain text content as fallback
+            msg.set_content(email_data.content)
 
-            # Attach text content
-            text_part = MIMEText(formatted_content, "plain", "utf-8")
-            msg.attach(text_part)
-
-            # Attach HTML content if available
+            # Add HTML alternative for rich formatting
             if email_data.html_content:
-                html_part = MIMEText(email_data.html_content, "html", "utf-8")
-                msg.attach(html_part)
+                msg.add_alternative(email_data.html_content, subtype="html")
+            else:
+                # If no HTML content, wrap plain text content as basic HTML
+                basic_html = (
+                    f"<html><body><pre>{email_data.content}</pre></body></html>"
+                )
+                msg.add_alternative(basic_html, subtype="html")
 
-            # Send the email
-            with smtplib.SMTP(self.config.smtp_server, self.config.smtp_port) as server:
-                server.starttls()
+            # Send the email using appropriate SMTP method
+            context = ssl.create_default_context()
 
-                # Use sender credentials if available, otherwise use main credentials
-                email = self.config.sender_email or self.config.address
-                password = self.config.sender_password or self.config.password
+            # Use sender credentials if available, otherwise use main credentials
+            email = self.config.sender_email or self.config.address
+            password = self.config.sender_password or self.config.password
 
-                server.login(email, password)
+            # Use SMTP_SSL for port 465, SMTP with starttls for port 587
+            if self.config.smtp_port == 465:
+                with smtplib.SMTP_SSL(
+                    self.config.smtp_server, self.config.smtp_port, context=context
+                ) as server:
+                    server.login(email, password)
+                    server.send_message(msg)
+            else:
+                with smtplib.SMTP(
+                    self.config.smtp_server, self.config.smtp_port
+                ) as server:
+                    server.starttls(context=context)
+                    server.login(email, password)
+                    server.send_message(msg)
 
-                # Send message
-                server.send_message(msg)
+            # Extract message ID
+            message_id = msg.get("Message-ID", "unknown")
 
-                # Extract message ID
-                message_id = msg.get("Message-ID", "unknown")
-
-                logger.debug(f"Email sent with message ID: {message_id}")
-                return message_id
+            logger.debug(f"Email sent with message ID: {message_id}")
+            return message_id
 
         except smtplib.SMTPAuthenticationError as e:
             raise EmailSenderError(f"Authentication failed: {e}") from e
